@@ -3,11 +3,42 @@ from optimization_algorithm import OptimizationAlgorithm
 import numpy as np
 
 class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
-    def optimize(self, residuals, initial_params, x_data, y_data, **kwargs):
-    # Konvertiere Daten in Numpy-Arrays
-        x_data = np.array(x_data)
-        y_data = np.array(y_data)
+    def __init__(self, max_iterations=1000, tolerance=1e-6):
+        """
+        Initialisiert den Levenberg-Marquardt-Algorithmus.
 
-        method = kwargs.get('method', 'lm')
-        result = least_squares(residuals, initial_params, args=(x_data, y_data), method=method)
-        return result
+        :param max_iterations: Maximale Anzahl von Iterationen für den Optimierungsprozess.
+        :param tolerance: Toleranz für die Abbruchbedingung.
+        """
+        self.max_iterations = max_iterations
+        self.tolerance = tolerance
+
+    def optimize(self, function, initial_x, **kwargs):
+        """
+        Optimiert die Eingabefunktion und findet das x, das den Funktionswert minimiert.
+
+        :param function: Eine Funktion, die minimiert werden soll.
+        :param initial_x: Der Startwert für die Optimierung.
+        :param kwargs: Zusätzliche Parameter für den Algorithmus, die an `least_squares` übergeben werden.
+        :return: Der x-Wert, der die Funktion minimiert, und der minimale Funktionswert.
+        """
+
+        # Filtere die unerwünschten Parameter heraus
+        valid_kwargs = {key: value for key, value in kwargs.items() if key in {'max_nfev', 'ftol', 'xtol'}}
+
+        # Verwenden Sie Levenberg-Marquardt mit least_squares zur Optimierung
+        result = least_squares(
+            fun=lambda x: function(x),
+            x0=np.array([initial_x]),
+            max_nfev=self.max_iterations,
+            ftol=self.tolerance,
+            xtol=self.tolerance,
+            **valid_kwargs
+        )
+
+        # Der optimierte x-Wert
+        optimized_x = result.x[0]
+        # Der minimale Wert der Funktion bei diesem x
+        min_value = function(optimized_x)
+
+        return optimized_x, min_value

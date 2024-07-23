@@ -1,68 +1,48 @@
-import os
-import time
-import pandas as pd
-import numpy as np
+# DataManager.py
+
 import json
-import uuid
+import os
+
 
 class DataManager:
-    def __init__(self, base_dir):
-        self.base_dir = base_dir
+    def __init__(self, directory):
+        self.directory = directory
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
-    def add_data(self, specialization, data):
-        specialization_dir = os.path.join(self.base_dir, specialization)
-        if not os.path.exists(specialization_dir):
-            os.makedirs(specialization_dir)
+    def add_data(self, filename, data):
+        # Konvertieren Sie die Funktion zu einem String, bevor Sie sie speichern
+        if 'function' in data:
+            data['function'] = self.function_to_string(data['function'])
 
-        timestamp = int(time.time())  # Aktuelle Zeit in Sekunden seit der Epoch
-        fd=str(uuid.uuid4())
-        filename = f'data_{fd}.json'  # Eindeutiger Dateiname basierend auf der Zeit
+        # Speichern der Daten in einer JSON-Datei
+        file_path = os.path.join(self.directory, f"{filename}.json")
+        with open(file_path, 'w') as file:
+            json.dump(data, file, indent=4)
 
-        file_path = os.path.join(specialization_dir, filename)
+    @staticmethod
+    def load_data(self, filename):
+        # Laden der Daten aus einer JSON-Datei
+        file_path = os.path.join(self.directory, f"{filename}.json")
+        with open(file_path, 'r') as file:
+            data = json.load(file)
 
-        # Speichere Daten als JSON-Datei
-        with open(file_path, 'w') as f:
-            # Konvertiere die Residuals-Funktion in eine speicherbare Form
-            data_copy = data.copy()
-            data_copy['residuals'] = {
-                'expression': 'np.concatenate((params[:9].reshape((3, 3)).flatten(), params[9:])) - np.concatenate((x, y))',
-                'variables': ['params', 'x', 'y']
-            }
-            json.dump(data_copy, f, indent=4)
-        print(f"Daten in {file_path} gespeichert.")
+        # Konvertieren Sie den String zurück in eine Funktion
+        if 'function' in data:
+            data['function'] = self.string_to_function(data['function'])
 
-    def load_data(self, specialization):
-        specialization_dir = os.path.join(self.base_dir, specialization)
-        if not os.path.exists(specialization_dir):
-            print(f"Keine Daten für {specialization} gefunden.")
-            return None
+        return [data]  # Wir geben eine Liste zurück, um mit dem bestehenden Code kompatibel zu bleiben
 
-        data_files = [f for f in os.listdir(specialization_dir) if f.endswith('.json')]
+    @staticmethod
+    def function_to_string(func):
+        # Konvertiert eine Funktion zu einem String
+        return func.__name__
 
-        if not data_files:
-            print(f"Keine Daten für {specialization} gefunden.")
-            return None
-
-        all_data = []
-
-        for data_file in data_files:
-            file_path = os.path.join(specialization_dir, data_file)
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-
-            # Rekonstruiere die Residuals-Funktion
-            residuals_str = data['residuals']['expression']
-            residuals_func = eval(f"lambda params, x, y: {residuals_str}")
-
-            # Konvertiere Daten zurück in das gewünschte Output-Format
-            output = {
-                'x': data['x'],
-                'y': data['y'],
-                'initial_params': data['initial_params'],
-                'residuals': residuals_func,
-                'additional_params': data['additional_params']
-            }
-            all_data.append(output)
-
-        return all_data
+    @staticmethod
+    def string_to_function(func_name):
+        # Konvertiert einen Funktionsnamen (String) zurück in eine Funktion
+        if func_name == "<lambda>":
+            return lambda x: x ** 2  # Beispiel-Funktion, dies muss manuell für jede Funktion angepasst werden
+        # Sie können hier zusätzliche Funktionen hinzufügen
+        raise ValueError(f"Unbekannte Funktion: {func_name}")
 

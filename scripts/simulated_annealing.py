@@ -1,40 +1,36 @@
-from scipy.optimize import least_squares
-from optimization_algorithm import OptimizationAlgorithm
 import numpy as np
 
-class SimulatedAnnelaingalgo(OptimizationAlgorithm):
-    initial_temperature=1000
-    cooling_rate=0.95
-    min_temperature = 1e-3
+class SimulatedAnnealing:
+    def __init__(self, initial_temperature=1000, cooling_rate=0.95, min_temperature=1e-3):
+        self.initial_temperature = initial_temperature
+        self.cooling_rate = cooling_rate
+        self.min_temperature = min_temperature
 
-    def optimize(self, residuals, initial_params, x_data, y_data, **kwargs):
-        current_solution = np.array(initial_params)
-        best_solution = np.copy(current_solution)
-        best_value = np.sum(residuals(current_solution, x_data, y_data) ** 2)
+    def optimize(self, function, initial_x, **kwargs):
+        current_x = initial_x
+        best_x = current_x
+        best_value = function(current_x)
         current_temperature = self.initial_temperature
 
         while current_temperature > self.min_temperature:
-            new_solution = self._generate_neighbor(current_solution, bounds=np.array([[-5, 5]] * len(initial_params)))
-            current_value = np.sum(residuals(current_solution, x_data, y_data) ** 2)
-            new_value = np.sum(residuals(new_solution, x_data, y_data) ** 2)
+            new_x = self._generate_neighbor(current_x)
+            current_value = function(current_x)
+            new_value = function(new_x)
 
             if self._acceptance_probability(current_value, new_value, current_temperature):
-                current_solution = new_solution
+                current_x = new_x
                 if new_value < best_value:
-                    best_solution = np.copy(new_solution)
+                    best_x = new_x
                     best_value = new_value
 
             current_temperature *= self.cooling_rate
 
-        return best_solution, best_value
+        return best_x, best_value
 
-    def _generate_neighbor(self, solution, bounds):
-        neighbor = np.copy(solution)
-        index = np.random.randint(0, len(solution))
+    def _generate_neighbor(self, x):
+        # Generiere einen neuen Nachbarwert von x
         change = np.random.uniform(-1, 1)
-        neighbor[index] += change
-        neighbor = np.clip(neighbor, bounds[:, 0], bounds[:, 1])
-        return neighbor
+        return x + change
 
     def _acceptance_probability(self, current_value, new_value, temperature):
         if new_value < current_value:

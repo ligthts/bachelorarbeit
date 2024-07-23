@@ -1,12 +1,24 @@
-from scipy.optimize import least_squares
-from optimization_algorithm import OptimizationAlgorithm
-import numpy as np
+# In der Datei optimization_algos/gradient_descent.py
 
-class GradientDescentAlgorithm(OptimizationAlgorithm):
-    def optimize(self, residuals, initial_params, x_data, y_data, **kwargs):
-        # Konvertiere Daten in Numpy-Arrays
-        x_data = np.array(x_data)
-        y_data = np.array(y_data)
+class GradientDescentAlgorithm:
+    def __init__(self, learning_rate=0.01, max_iterations=1000, tolerance=1e-6):
+        self.learning_rate = learning_rate
+        self.max_iterations = max_iterations
+        self.tolerance = tolerance
 
-        result = least_squares(residuals, initial_params, args=(x_data, y_data), method="trf")
-        return result
+    def optimize(self, function, initial_x, **kwargs):
+        x = initial_x
+        for _ in range(self.max_iterations):
+            grad = self._compute_gradient(function, x)
+            new_x = x - self.learning_rate * grad
+
+            if abs(new_x - x) < self.tolerance:
+                break
+
+            x = new_x
+
+        return x, function(x)
+
+    def _compute_gradient(self, function, x, epsilon=1e-8):
+        # Numerische Ableitung zur Approximation des Gradienten
+        return (function(x + epsilon) - function(x - epsilon)) / (2 * epsilon)

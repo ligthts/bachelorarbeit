@@ -1,10 +1,10 @@
+# main.py
 import time
 import importlib
-import pandas as pd
-import numpy as np
 import os
 import inspect
 import psutil
+import numpy as np
 from empirical import Empiricalschatzung
 from Dataadder import DataManager
 
@@ -51,55 +51,46 @@ def evaluate_algorithm(algorithm, data):
     process = psutil.Process()
     mem_before = process.memory_info().rss
     start_time = time.time()
-    result = algorithm.optimize(
-        lambda params, x, y: model(params, x, y) - y,
-        data['initial_params'],
-        data['x'],
-        data['y'],
-        **data.get('additional_params', {})
+
+    # Optimierung der Funktion auf den x-Wert, der das Minimum erreicht
+    result_x, result_value = algorithm.optimize(
+        data['function'],
+        data['initial_x'],
+        **data.get('additional_params', {})  # Sicherstellen, dass dies ein Dictionary ist
     )
+
     end_time = time.time()
 
     mem_after = process.memory_info().rss
 
     factors.run_time = end_time - start_time
-    factors.accuracy = calculate_accuracy(result.x, data['x'], data['y'])
+    factors.accuracy = calculate_accuracy(data['function'], result_x)
     factors.memory_usage = mem_after - mem_before
 
-    return factors, result
+    return factors, result_x, result_value
 
 
-def calculate_accuracy(params, x, y):
-    x = np.array(x)
-    y = np.array(y)
-    model_y = model(params, x, y)
-    mse = np.mean((y - model_y) ** 2)
-    rmse = np.sqrt(mse)
-    return rmse
-
-
-def model(params, x, y):
-    f = 0
-    result = 0
-    for i in reversed(params):
-        result += i * x ** f
-        f += 1
-    return result
+def calculate_accuracy(function, x):
+    # Hier wird der Funktionswert an der Stelle x berechnet
+    y = function(x)
+    return y
 
 
 if __name__ == "__main__":
+    # Beispiel: Optimierung der Funktion x^2
     data = {
-        'x': [0, 1, 2, 3, 4, 5],
-        'y': [0, 1, 4, 9, 16, 25],
-        'initial_params': [1, 0, 0],
-        'residuals': lambda params, x, y: model(params, x) - y,
-        'additional_params': {
-            'method': 'lm'
+        'function': lambda x: x**2,  # Die Funktion, die minimiert werden soll
+        'initial_x': 10000,             # Startwert für x
+        'additional_params': {       # Zusätzliche Parameter als Dictionary
+            'learning_rate': 0.1,
+            'max_iterations': 1000,
+            'tolerance': 1e-6
         }
     }
+
     adder = DataManager("data")
-    adder.add_data("camera_calibration", data)
-    data_list = DataManager.load_data(adder, "camera_calibration")
+    adder.add_data("function_optimization", data)
+    data_list = DataManager.load_data(adder, "function_optimization")
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():
@@ -111,12 +102,10 @@ if __name__ == "__main__":
         print(module_name, class_name)
         algorithm = load_algorithm(module_name, class_name)
         for da in data_list:
-            factors, result = evaluate_algorithm(algorithm, da)
-            Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
+            factors, result_x, result_value = evaluate_algorithm(algorithm, da)
+            #Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
             print(f"Algorithm: {class_name}")
             print(f"Run Time: {factors.run_time} seconds")
             print(f"Accuracy: {factors.accuracy}")
             print(f"Memory Usage: {factors.memory_usage} bytes")
-            print(f"Optimized Parameters: {result.x}")
-
-# DataManager.py
+            print(f"Minimum x: {result_x}, Minimum value: {result_value}")

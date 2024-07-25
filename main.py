@@ -88,7 +88,7 @@ if __name__ == "__main__":
         }
     }
 
-    adder = DataManager("data")
+    adder = DataManager(r"data\test")
     adder.add_data("function_optimization", data)
     data_list = DataManager.load_data(adder, "function_optimization")
     algorithms = load_modules_and_find_classes('optimization_algos')

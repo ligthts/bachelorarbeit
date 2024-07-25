@@ -7,6 +7,7 @@ import psutil
 import numpy as np
 from empirical import Empiricalschatzung
 from Dataadder import DataManager
+import cv2
 
 
 class EvaluationFactors:
@@ -90,7 +91,20 @@ if __name__ == "__main__":
 
     adder = DataManager(r"data\test")
     #adder.add_data("function_optimization", data)
-    data_list = DataManager.load_data(adder, "camera_calibration_results")
+    data = DataManager.load_data(adder, r"C:\Users\fabia\PycharmProjects\BachelorArbeit\data\camera_calibration_results.json")
+    calibration_function_code = data['calibration_function']
+    initial_params = data['initial_params']
+    additional_params = data['additional_params']
+    print(calibration_function_code)
+    # Konvertiere den Code in eine ausführbare Funktion
+    local_scope = {}
+    exec(calibration_function_code, {"np": np, "cv2": cv2}, local_scope)
+    calibration_function = local_scope['calibration_function']
+    da={
+        'function':calibration_function,
+        'initial_x':initial_params,
+        'additional_params':additional_params
+    }
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():
@@ -101,7 +115,7 @@ if __name__ == "__main__":
         module_name, class_name = module_class.rsplit('.', 1)
         print(module_name, class_name)
         algorithm = load_algorithm(module_name, class_name)
-        for da in data_list:
+        if True:
             factors, result_x, result_value = evaluate_algorithm(algorithm, da)
             #Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
             print(f"Algorithm: {class_name}")
@@ -109,3 +123,5 @@ if __name__ == "__main__":
             print(f"Accuracy: {factors.accuracy}")
             print(f"Memory Usage: {factors.memory_usage} bytes")
             print(f"Minimum x: {result_x}, Minimum value: {result_value}")
+        else:
+            print("nicht möglich")

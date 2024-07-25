@@ -15,7 +15,7 @@ class DataManager:
 
     def load_data(self, filename):
         # Laden der Daten aus einer JSON-Datei
-        file_path = os.path.join(self.directory, f"{filename}.json")
+        file_path = os.path.join(self.directory, f"{filename}")
         with open(file_path, 'r') as file:
             data = json.load(file)
         return data

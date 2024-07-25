@@ -1,4 +1,4 @@
-# In der Datei optimization_algos/gradient_descent.py
+from scipy.optimize import least_squares
 
 class GradientDescentAlgorithm:
     def __init__(self, learning_rate=0.01, max_iterations=1000, tolerance=1e-6):
@@ -6,19 +6,30 @@ class GradientDescentAlgorithm:
         self.max_iterations = max_iterations
         self.tolerance = tolerance
 
-    def optimize(self, function, initial_x, **kwargs):
-        x = initial_x
-        for _ in range(self.max_iterations):
-            grad = self._compute_gradient(function, x)
-            new_x = x - self.learning_rate * grad
+    def optimize_least_squares(func, initial_x, **kwargs):
+        """
+        Optimiert eine Funktion mit Hilfe des Least-Squares-Algorithmus von SciPy.
 
-            if abs(new_x - x) < self.tolerance:
-                break
+        Parameters:
+        - func: Die Funktion, die optimiert werden soll.
+        - initial_x: Liste oder Array von Startwerten für die Parameter.
+        - **kwargs: Zusätzliche Optionen und Parameter, die an least_squares übergeben werden.
 
-            x = new_x
+        Returns:
+        - Ein OptimizeResult-Objekt mit den Optimierungsergebnissen.
+        """
+        # Filtern der relevanten Schlüsselwörter, die least_squares akzeptiert
+        valid_keys = {
+            'jac', 'bounds', 'method', 'ftol', 'xtol', 'gtol',
+            'x_scale', 'loss', 'f_scale', 'diff_step', 'tr_solver',
+            'tr_options', 'jac_sparsity', 'max_nfev', 'verbose',
+            'args', 'kwargs'
+        }
+        print(initial_x)
+        # Filtere nur die gültigen Argumente für least_squares
+        filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
 
-        return x, function(x)
-
-    def _compute_gradient(self, function, x, epsilon=1e-8):
-        # Numerische Ableitung zur Approximation des Gradienten
-        return (function(x + epsilon) - function(x - epsilon)) / (2 * epsilon)
+        # Rufe least_squares mit den gefilterten Argumenten auf
+        result = least_squares(func, initial_x, **filtered_kwargs)
+        result_x=func(result)
+        return result, result_x

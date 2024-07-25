@@ -1,84 +1,101 @@
-import numpy as np
-import cv2
-import glob
 import os
-import pandas as pd
+import cv2
+import numpy as np
 from Dataadder import DataManager
 
-def residuals(params, x, y):
-    mtx = params[:9].reshape((3, 3))  # Kameramatrix wiederherstellen
-    dist = params[9:]  # Verzerrungskoeffizienten wiederherstellen
-    return np.concatenate((mtx.flatten(), dist.flatten())) - np.concatenate((x, y))
 
-# Beispielbilder für die Kalibrierung
-image_paths = glob.glob('calibration_images/*.jpg')
-directory = r"C:\Users\fabia\Downloads\archive\data\imgs\leftcamera"
-image_paths1 = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.jpg') or file.endswith('.png')]
-image_paths += image_paths1
-print(f"Total number of images: {len(image_paths)}")
+class CameraCalibration:
+    def __init__(self, directory):
+        self.data_manager = DataManager(directory)
 
-# Größen der Schachbrettmuster
-pattern_sizes = [(11,7), (12, 8),(9,6),(8,6),(7,5)]  # Liste der verschiedenen Schachbrettmuster-Größen
+    def load_images_from_directory(self, image_directory):
+        """
+        Lädt alle Bilder aus einem angegebenen Verzeichnis.
 
-calibration_data = []
-for path in image_paths:
-    img = cv2.imread(path)
-    if img is None:
-        print(f"Could not read image {path}")
-        continue
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        :param image_directory: Pfad zum Bildverzeichnis.
+        :return: Liste von geladenen Bildern.
+        """
+        images = []
+        for filename in os.listdir(image_directory):
+            if filename.endswith(('.png', '.jpg', '.jpeg')):
+                img_path = os.path.join(image_directory, filename)
+                img = cv2.imread(img_path)
+                if img is not None:
+                    images.append(img)
+        return images
 
-    corners_found = False
-    for pattern_size in pattern_sizes:
-        # Vorbereitung der Schachbrettmuster-Punkte
-        objp = np.zeros((pattern_size[0] * pattern_size[1], 3), np.float32)
-        objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2)
+    def find_chessboard_corners(self, images, chessboard_size):
+        """
+        Findet Schachbrettecken in den gegebenen Bildern.
 
-        # Finde die Schachbrettmuster-Ecken
-        ret, corners = cv2.findChessboardCorners(gray, pattern_size, None)
+        :param images: Liste von Bildern.
+        :param chessboard_size: Anzahl der inneren Ecken des Schachbretts (width, height).
+        :return: Bildpunkte und Weltpunkte.
+        """
+        obj_points = []  # 3D-Punkte in realer Welt
+        img_points = []  # 2D-Punkte in Bildebene
 
-        if ret:
-            print(f"Chessboard corners found in image: {path} with pattern size: {pattern_size}")
-            corners_found = True
-            obj_points = [objp]
-            img_points = [corners]
+        # Definiere Weltkoordinaten für die Schachbrett-Ecken
+        objp = np.zeros((chessboard_size[0] * chessboard_size[1], 3), np.float32)
+        objp[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
 
-            # Kamera-Kalibrierung für das aktuelle Bild
-            ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points, gray.shape[::-1], None, None)
+        for img in images:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # Finde die Schachbrettecken
+            ret, corners = cv2.findChessboardCorners(gray, chessboard_size, None)
 
-            # Extrahiere die Kameraparameter in die gewünschte Struktur
-            x_data = mtx.flatten()  # Flattened Kameramatrix
-            y_data = dist.flatten()  # Flattened Verzerrungskoeffizienten
+            if ret:
+                img_points.append(corners)
+                obj_points.append(objp)
 
-            # Gleiche Länge sicherstellen, überschüssige Elemente entfernen
-            min_length = min(len(x_data), len(y_data))
-            x_data = x_data[:min_length]
-            y_data = y_data[:min_length]
+        return obj_points, img_points
 
-            initial_params = np.concatenate((x_data, y_data))  # Initialparameter für die Optimierung
+    def calibrate_camera(self, image_directory, chessboard_size):
+        """
+        Kalibriert die Kamera mit Bildern aus einem Verzeichnis und speichert die Kalibrierungsfunktion.
 
-            # Struktur für die Rückgabe
-            output = {
-                'x': x_data.tolist(),
-                'y': y_data.tolist(),
-                'initial_params': initial_params.tolist(),
-                'residuals': residuals,
-                'additional_params': {
-                    'method': 'lm'
-                }
+        :param image_directory: Verzeichnis, das die Kalibrierungsbilder enthält.
+        :param chessboard_size: Anzahl der inneren Ecken des Schachbretts (width, height).
+        :return: Kameramatrix und Verzerrungskoeffizienten.
+        """
+        images = self.load_images_from_directory(image_directory)
+        obj_points, img_points = self.find_chessboard_corners(images, chessboard_size)
+
+        # Kalibriere die Kamera
+        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points,
+                                                                            images[0].shape[1::-1], None, None)
+
+        # Erstelle die Kalibrierungsfunktion als ausführbaren Code
+        calibration_function_code = f"""
+def calibration_function(x):
+    # x = [fx, fy, cx, cy, k1, k2, p1, p2, k3]
+    camera_matrix = np.array([[x[0], 0, x[2]], [0, x[1], x[3]], [0, 0, 1]])
+    dist_coeffs = np.array([x[4], x[5], x[6], x[7], x[8]])
+    # Berechne reprojection error
+    total_error = 0
+    for i in range(len(obj_points)):
+        img_points_proj, _ = cv2.projectPoints(obj_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
+        error = cv2.norm(img_points[i], img_points_proj, cv2.NORM_L2) / len(img_points_proj)
+        total_error += error
+    return total_error
+"""
+        # Speichern der Kalibrierungsergebnisse
+        initial_params = [
+            camera_matrix[0, 0], camera_matrix[1, 1], camera_matrix[0, 2],
+            camera_matrix[1, 2], dist_coeffs[0, 0], dist_coeffs[0, 1],
+            dist_coeffs[0, 2], dist_coeffs[0, 3], dist_coeffs[0, 4]
+        ]
+
+        data = {
+            "camera_matrix": camera_matrix.tolist(),
+            "dist_coeffs": dist_coeffs.tolist(),
+            "calibration_function": calibration_function_code,
+            "initial_params": initial_params,
+            "additional_params": {
+                # Hier könnten später zusätzliche Parameter hinzugefügt werden
             }
+        }
+        self.data_manager.add_data("camera_calibration_results", data)
 
-            calibration_data.append(output)
-            man = DataManager('data')
-            man.add_data("shape_estimation", output)
-            break  # Wenn ein passendes Muster gefunden wurde, die Schleife verlassen
+        return camera_matrix, dist_coeffs
 
-    if not corners_found:
-        print(f"Chessboard corners not found in image: {path}")
-
-# Konvertiere die Liste der Kalibrierungsdaten in ein DataFrame
-calibration_df = pd.DataFrame(calibration_data)
-print(calibration_df)
-
-# Speichere die Kalibrierungsdaten
-man = DataManager('data')

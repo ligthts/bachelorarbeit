@@ -89,8 +89,8 @@ if __name__ == "__main__":
     }
 
     adder = DataManager(r"data\test")
-    adder.add_data("function_optimization", data)
-    data_list = DataManager.load_data(adder, "function_optimization")
+    #adder.add_data("function_optimization", data)
+    data_list = DataManager.load_data(adder, "camera_calibration_results")
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():

@@ -1,4 +1,5 @@
 # main.py
+
 import time
 import importlib
 import os
@@ -54,10 +55,10 @@ def evaluate_algorithm(algorithm, data):
     start_time = time.time()
 
     # Optimierung der Funktion auf den x-Wert, der das Minimum erreicht
-    result_x, result_value = algorithm.optimize(
-        data['function'],
-        data['initial_x'],
-        **data.get('additional_params', {})  # Sicherstellen, dass dies ein Dictionary ist
+    result_x = algorithm.optimize(
+        data['function'],  # Pass the function from the data dictionary
+        data['initial_x'],  # Pass the initial value for x
+        **data.get('additional_params', {})  # Ensure this is a dictionary
     )
 
     end_time = time.time()
@@ -77,6 +78,11 @@ def calculate_accuracy(function, x):
     return y
 
 
+# Define func1 before it's used
+def func1(x):
+    return (x + 1) ** 2
+
+
 if __name__ == "__main__":
     # Beispiel: Optimierung der Funktion x^2
     data = {
@@ -90,7 +96,7 @@ if __name__ == "__main__":
     }
 
     adder = DataManager(r"data\test")
-    #adder.add_data("function_optimization", data)
+    # adder.add_data("function_optimization", data)
     data = DataManager.load_data(adder, r"C:\Users\fabia\PycharmProjects\BachelorArbeit\data\camera_calibration_results.json")
     calibration_function_code = data['calibration_function']
     initial_params = data['initial_params']
@@ -100,11 +106,18 @@ if __name__ == "__main__":
     local_scope = {}
     exec(calibration_function_code, {"np": np, "cv2": cv2}, local_scope)
     calibration_function = local_scope['calibration_function']
-    da={
-        'function':calibration_function,
-        'initial_x':initial_params,
-        'additional_params':additional_params
+    da = {
+        'function': calibration_function,
+        'initial_x': initial_params,
+        'additional_params': additional_params
     }
+
+    da = {
+        "initial_x": [0, 0],  # Startwerte für die Optimierung
+        "function": lambda x: (x[0] - 3) ** 2 + (x[1] + 4) ** 2,  # Zu minimierende Funktion
+        "bounds": [(-10, 10), (-10, 10)],  # Grenzen für die Parameter
+    }
+
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():
@@ -117,7 +130,7 @@ if __name__ == "__main__":
         algorithm = load_algorithm(module_name, class_name)
         if True:
             factors, result_x, result_value = evaluate_algorithm(algorithm, da)
-            #Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
+            # Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
             print(f"Algorithm: {class_name}")
             print(f"Run Time: {factors.run_time} seconds")
             print(f"Accuracy: {factors.accuracy}")

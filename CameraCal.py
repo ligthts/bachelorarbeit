@@ -65,25 +65,68 @@ class CameraCalibration:
         ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points,
                                                                             images[0].shape[1::-1], None, None)
 
+        # Debugging-Ausgaben
+        print("Kamera-Matrix:", camera_matrix)
+        print("Verzerrungskoeffizienten:", dist_coeffs)
+
+        # Überprüfe die Dimensionen der Kamera-Matrix und Verzerrungskoeffizienten
+        if camera_matrix.shape != (3, 3):
+            raise ValueError("camera_matrix hat nicht die erwartete Form (3, 3)")
+
+        dist_coeffs = dist_coeffs.flatten()  # Wandle dist_coeffs in ein eindimensionales Array um
+        dist_coeffs_len = len(dist_coeffs)
+        print("Länge der Verzerrungskoeffizienten:", dist_coeffs_len)
+
+        if dist_coeffs_len not in [4, 5, 8, 12, 14]:
+            raise ValueError(f"dist_coeffs hat unerwartete Länge: {dist_coeffs_len}. Erwartet: 4, 5, 8, 12 oder 14.")
+
         # Erstelle die Kalibrierungsfunktion als ausführbaren Code
-        calibration_function_code = f"""
+        calibration_function_code =  """
 def calibration_function(x):
-    # x = [fx, fy, cx, cy, k1, k2, p1, p2, k3]
-    camera_matrix = np.array([[x[0], 0, x[2]], [0, x[1], x[3]], [0, 0, 1]])
-    dist_coeffs = np.array([x[4], x[5], x[6], x[7], x[8]])
-    # Berechne reprojection error
+    import numpy as np
+    import cv2
+
+    # Extrahiere Kamera-Matrix und Verzerrungskoeffizienten
+    fx, fy, cx, cy = x[0:4]
+    k1, k2, p1, p2, k3 = x[4:9]
+    camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+    dist_coeffs = np.array([k1, k2, p1, p2, k3])
+
+    # Extrahiere restliche Parameter
+    num_obj_points = int(x[9])
+    obj_points_flat = x[10:10 + 3 * num_obj_points]
+    img_points_flat = x[10 + 3 * num_obj_points:10 + 3 * num_obj_points + 2 * num_obj_points]
+    rvecs_flat = x[10 + 3 * num_obj_points + 2 * num_obj_points:10 + 3 * num_obj_points + 2 * num_obj_points + 3 * num_obj_points]
+    tvecs_flat = x[10 + 3 * num_obj_points + 2 * num_obj_points + 3 * num_obj_points:]
+
+    obj_points = [np.array(obj_points_flat[i:i + 3]).reshape(-1, 3) for i in range(0, len(obj_points_flat), 3)]
+    img_points = [np.array(img_points_flat[i:i + 2]).reshape(-1, 2) for i in range(0, len(img_points_flat), 2)]
+    rvecs = [np.array(rvecs_flat[i:i + 3]) for i in range(0, len(rvecs_flat), 3)]
+    tvecs = [np.array(tvecs_flat[i:i + 3]) for i in range(0, len(tvecs_flat), 3)]
+
+    # Berechne den Reprojektion Fehler
     total_error = 0
     for i in range(len(obj_points)):
         img_points_proj, _ = cv2.projectPoints(obj_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
+        img_points_proj = img_points_proj.reshape(-1, 2)
         error = cv2.norm(img_points[i], img_points_proj, cv2.NORM_L2) / len(img_points_proj)
         total_error += error
+
     return total_error
 """
-        # Speichern der Kalibrierungsergebnisse
+        # Flatten und Speichern der Kalibrierungsergebnisse
+        obj_points_flat = np.concatenate([p.flatten() for p in obj_points])
+        img_points_flat = np.concatenate([p.flatten() for p in img_points])
+        rvecs_flat = np.concatenate([r.flatten() for r in rvecs])
+        tvecs_flat = np.concatenate([t.flatten() for t in tvecs])
         initial_params = [
-            camera_matrix[0, 0], camera_matrix[1, 1], camera_matrix[0, 2],
-            camera_matrix[1, 2], dist_coeffs[0, 0], dist_coeffs[0, 1],
-            dist_coeffs[0, 2], dist_coeffs[0, 3], dist_coeffs[0, 4]
+            float(camera_matrix[0, 0]), float(camera_matrix[1, 1]), float(camera_matrix[0, 2]),
+            float(camera_matrix[1, 2]), *dist_coeffs.tolist(),  # Hier passen wir die Verzerrungskoeffizienten an
+            len(obj_points),
+            *obj_points_flat.tolist(),
+            *img_points_flat.tolist(),
+            *rvecs_flat.tolist(),
+            *tvecs_flat.tolist()
         ]
 
         data = {
@@ -98,4 +141,6 @@ def calibration_function(x):
         self.data_manager.add_data("camera_calibration_results", data)
 
         return camera_matrix, dist_coeffs
+
+
 

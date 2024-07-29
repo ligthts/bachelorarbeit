@@ -31,5 +31,5 @@ class GradientDescentAlgorithm:
 
         # Rufe least_squares mit den gefilterten Argumenten auf
         result = least_squares(func, initial_x, **filtered_kwargs)
-        result_x = func(result)
-        return result, result_x
+        #result_x = func(result)
+        return result

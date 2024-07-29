@@ -64,7 +64,7 @@ class App(tk.Tk):
         ax.plot(x, model_y, label='Fitted model')
         ax.legend()
 
-        Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
+        #Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
 
         fig.savefig(f"plot_{algorithm.__class__.__name__}.png")
         plt.close(fig)

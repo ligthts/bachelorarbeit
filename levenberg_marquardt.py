@@ -28,11 +28,8 @@ class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
 
         # Verwenden Sie Levenberg-Marquardt mit least_squares zur Optimierung
         result = least_squares(
-            fun=lambda x: function(x),
-            x0=np.array([initial_x]),
-            max_nfev=self.max_iterations,
-            ftol=self.tolerance,
-            xtol=self.tolerance,
+            function,
+            x0=initial_x,
             **valid_kwargs
         )
 

@@ -28,7 +28,7 @@ class GradientDescentAlgorithm:
         print(initial_x)
         # Filtere nur die gültigen Argumente für least_squares
         filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
-
+        print(filtered_kwargs)
         # Rufe least_squares mit den gefilterten Argumenten auf
         result = least_squares(func, initial_x, **filtered_kwargs)
         #result_x = func(result)

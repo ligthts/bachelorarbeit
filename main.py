@@ -10,19 +10,16 @@ from empirical import Empiricalschatzung
 from Dataadder import DataManager
 import cv2
 
-
 class EvaluationFactors:
     def __init__(self):
         self.run_time = 0
         self.accuracy = 0
         self.memory_usage = 0
 
-
 def load_algorithm(module_name, class_name):
     module = importlib.import_module(module_name)
     algorithm_class = getattr(module, class_name)
     return algorithm_class()
-
 
 def find_classes_in_module(module):
     classes = []
@@ -32,6 +29,33 @@ def find_classes_in_module(module):
     return classes
 
 
+def run_all_evaluations(base_dir='camera_calibration_problems', algorithms=[]):
+    """
+    Läuft alle Bewertungen für jedes Kalibrierungsproblem und jeden Algorithmus.
+
+    :param base_dir: Hauptverzeichnis, das die Kalibrierungsprobleme enthält.
+    :param algorithms: Liste von Algorithmen, die zur Bewertung verwendet werden sollen.
+    """
+    # Lade alle Kalibrierungsprobleme
+    python_functions, json_data = DataManager.load_all_calibration_problems(base_dir)
+    print(python_functions)
+    for module, classes in algorithms.items():
+        for cls in classes:
+            module_class_pairs.append(f"{module}.{cls}")
+
+    # Iteriere über alle geladenen Kalibrierungsprobleme
+    for problem in python_functions:
+        for data in json_data:
+            for module_class in reversed(module_class_pairs):
+                module_name, class_name = module_class.rsplit('.', 1)
+                print(module_name, class_name)
+                algorithm = load_algorithm(module_name, class_name)
+
+                # Iteriere über alle Algorithmen
+                print(algorithm)
+                #print(f"Evaluating problem '{problem['name']}' with algorithm '{algorithm.__name__}'")
+                result = evaluate_algorithm(algorithm, data,problem)
+                print(f"Result: {result}")
 def load_modules_and_find_classes(directory):
     modules_and_classes = {}
     for filename in os.listdir(directory):
@@ -46,8 +70,7 @@ def load_modules_and_find_classes(directory):
                 print(f"Fehler beim Importieren von {module_name}: {e}")
     return modules_and_classes
 
-
-def evaluate_algorithm(algorithm, data):
+def evaluate_algorithm(algorithm, data,function):
     factors = EvaluationFactors()
 
     process = psutil.Process()
@@ -56,8 +79,8 @@ def evaluate_algorithm(algorithm, data):
 
     # Optimierung der Funktion auf den x-Wert, der das Minimum erreicht
     result_x = algorithm.optimize(
-        data['function'],  # Pass the function from the data dictionary
-        data['initial_x'],  # Pass the initial value for x
+        function,  # Pass the function from the data dictionary
+        data['initial_params'],  # Pass the initial value for x
         **data.get('additional_params', {})  # Ensure this is a dictionary
     )
 
@@ -66,22 +89,21 @@ def evaluate_algorithm(algorithm, data):
     mem_after = process.memory_info().rss
 
     factors.run_time = end_time - start_time
-    factors.accuracy = calculate_accuracy(data['function'], result_x)
+    factors.accuracy = result_x
+        #calculate_accuracy(data['function'], result_x)
     factors.memory_usage = mem_after - mem_before
 
-    return factors, result_x, result_value
-
+    return factors, result_x,
+        #data['function'](result_x)
 
 def calculate_accuracy(function, x):
     # Hier wird der Funktionswert an der Stelle x berechnet
     y = function(x)
     return y
 
-
 # Define func1 before it's used
 def func1(x):
     return (x + 1) ** 2
-
 
 if __name__ == "__main__":
     # Beispiel: Optimierung der Funktion x^2
@@ -98,43 +120,39 @@ if __name__ == "__main__":
     adder = DataManager(r"data\test")
     # adder.add_data("function_optimization", data)
     data = DataManager.load_data(adder, r"C:\Users\fabia\PycharmProjects\BachelorArbeit\data\camera_calibration_results.json")
-    calibration_function_code = data['calibration_function']
+
+    # Importiere die Kalibrierungsfunktion aus der externen Datei
+    #from calibration_function import calibration_function
+
     initial_params = data['initial_params']
     additional_params = data['additional_params']
-    print(calibration_function_code)
-    # Konvertiere den Code in eine ausführbare Funktion
-    local_scope = {}
-    exec(calibration_function_code, {"np": np, "cv2": cv2}, local_scope)
-    calibration_function = local_scope['calibration_function']
-    da = {
-        'function': calibration_function,
-        'initial_x': initial_params,
-        'additional_params': additional_params
-    }
 
-    da = {
-        "initial_x": [0, 0],  # Startwerte für die Optimierung
-        "function": lambda x: (x[0] - 3) ** 2 + (x[1] + 4) ** 2,  # Zu minimierende Funktion
-        "bounds": [(-10, 10), (-10, 10)],  # Grenzen für die Parameter
-    }
+    #da = {
+     #   'function': calibration_function,
+      #  'initial_x': initial_params,
+       # 'additional_params': additional_params
+    #}
 
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():
         for cls in classes:
             module_class_pairs.append(f"{module}.{cls}")
-
-    for module_class in module_class_pairs:
+    run_all_evaluations("camera_calibration_problems",algorithms)
+    for module_class in reversed(module_class_pairs):
         module_name, class_name = module_class.rsplit('.', 1)
         print(module_name, class_name)
         algorithm = load_algorithm(module_name, class_name)
         if True:
-            factors, result_x, result_value = evaluate_algorithm(algorithm, da)
+            print(algorithm)
+            factors, result_x = evaluate_algorithm(algorithm, da)
             # Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
             print(f"Algorithm: {class_name}")
             print(f"Run Time: {factors.run_time} seconds")
             print(f"Accuracy: {factors.accuracy}")
             print(f"Memory Usage: {factors.memory_usage} bytes")
-            print(f"Minimum x: {result_x}, Minimum value: {result_value}")
+            print(f"Minimum x: {result_x}, Minimum value: {result_x}")
         else:
             print("nicht möglich")
+
+

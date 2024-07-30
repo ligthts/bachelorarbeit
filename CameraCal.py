@@ -1,3 +1,5 @@
+# CameraCal.py
+
 import os
 import cv2
 import numpy as np
@@ -62,8 +64,9 @@ class CameraCalibration:
         obj_points, img_points = self.find_chessboard_corners(images, chessboard_size)
 
         # Kalibriere die Kamera
-        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(obj_points, img_points,
-                                                                            images[0].shape[1::-1], None, None)
+        ret, camera_matrix, dist_coeffs, rvecs, tvecs = cv2.calibrateCamera(
+            obj_points, img_points, images[0].shape[1::-1], None, None
+        )
 
         # Debugging-Ausgaben
         print("Kamera-Matrix:", camera_matrix)
@@ -81,54 +84,60 @@ class CameraCalibration:
             raise ValueError(f"dist_coeffs hat unerwartete Länge: {dist_coeffs_len}. Erwartet: 4, 5, 8, 12 oder 14.")
 
         # Erstelle die Kalibrierungsfunktion als ausführbaren Code
-        calibration_function_code =  """
-def calibration_function(x):
-    import numpy as np
-    import cv2
 
-    # Extrahiere Kamera-Matrix und Verzerrungskoeffizienten
-    fx, fy, cx, cy = x[0:4]
-    k1, k2, p1, p2, k3 = x[4:9]
-    camera_matrix = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-    dist_coeffs = np.array([k1, k2, p1, p2, k3])
 
-    # Extrahiere restliche Parameter
-    num_obj_points = int(x[9])
-    obj_points_flat = x[10:10 + 3 * num_obj_points]
-    img_points_flat = x[10 + 3 * num_obj_points:10 + 3 * num_obj_points + 2 * num_obj_points]
-    rvecs_flat = x[10 + 3 * num_obj_points + 2 * num_obj_points:10 + 3 * num_obj_points + 2 * num_obj_points + 3 * num_obj_points]
-    tvecs_flat = x[10 + 3 * num_obj_points + 2 * num_obj_points + 3 * num_obj_points:]
-
-    obj_points = [np.array(obj_points_flat[i:i + 3]).reshape(-1, 3) for i in range(0, len(obj_points_flat), 3)]
-    img_points = [np.array(img_points_flat[i:i + 2]).reshape(-1, 2) for i in range(0, len(img_points_flat), 2)]
-    rvecs = [np.array(rvecs_flat[i:i + 3]) for i in range(0, len(rvecs_flat), 3)]
-    tvecs = [np.array(tvecs_flat[i:i + 3]) for i in range(0, len(tvecs_flat), 3)]
-
-    # Berechne den Reprojektion Fehler
-    total_error = 0
-    for i in range(len(obj_points)):
-        img_points_proj, _ = cv2.projectPoints(obj_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
-        img_points_proj = img_points_proj.reshape(-1, 2)
-        error = cv2.norm(img_points[i], img_points_proj, cv2.NORM_L2) / len(img_points_proj)
-        total_error += error
-
-    return total_error
-"""
         # Flatten und Speichern der Kalibrierungsergebnisse
         obj_points_flat = np.concatenate([p.flatten() for p in obj_points])
         img_points_flat = np.concatenate([p.flatten() for p in img_points])
         rvecs_flat = np.concatenate([r.flatten() for r in rvecs])
         tvecs_flat = np.concatenate([t.flatten() for t in tvecs])
-        initial_params = [
-            float(camera_matrix[0, 0]), float(camera_matrix[1, 1]), float(camera_matrix[0, 2]),
-            float(camera_matrix[1, 2]), *dist_coeffs.tolist(),  # Hier passen wir die Verzerrungskoeffizienten an
-            len(obj_points),
-            *obj_points_flat.tolist(),
-            *img_points_flat.tolist(),
-            *rvecs_flat.tolist(),
-            *tvecs_flat.tolist()
-        ]
 
+        # Debugging-Ausgaben zum Überprüfen der flachen Listen
+        print("Flache obj_points Länge:", len(obj_points_flat))
+        print("Flache img_points Länge:", len(img_points_flat))
+        print("Flache rvecs Länge:", len(rvecs_flat))
+        print("Flache tvecs Länge:", len(tvecs_flat))
+
+        initial_params = [
+            0,0,0,0
+        ]
+        calibration_function_code = f"""
+import numpy as np
+import cv2
+
+def calibration_function(x):
+                    # Instanziierung der festen Parameter
+                    camera_matrix = np.array({camera_matrix.tolist()})
+                    dist_coeffs = np.array({dist_coeffs.tolist()})
+
+                    # Diese Daten werden fest im Code der Datei gespeichert
+                    obj_points_flat = {obj_points_flat.tolist()}
+                    img_points_flat = {img_points_flat.tolist()}
+                    rvecs_flat = {rvecs_flat.tolist()}
+                    tvecs_flat = {tvecs_flat.tolist()}
+
+                    # Konvertierung der flachen Listen in numpy Arrays
+                    obj_points = [np.array(obj_points_flat[i:i + 3]).reshape(1, 3) for i in range(0, len(obj_points_flat), 3)]
+                    img_points = [np.array(img_points_flat[i:i + 2]).reshape(1, 2) for i in range(0, len(img_points_flat), 2)]
+                    rvecs = [np.array(rvecs_flat[i:i + 3]) for i in range(0, len(rvecs_flat), 3)]
+                    tvecs = [np.array(tvecs_flat[i:i + 3]) for i in range(0, len(tvecs_flat), 3)]
+
+
+                    # Überprüfen Sie, ob die Listen gleich lang sind
+                    if not (len(obj_points) == len(img_points) and len(rvecs) == len(tvecs)):
+                        raise ValueError("Die Langen der Listen obj_points, img_points, rvecs und tvecs stimmen nicht uberein")
+
+                    # Berechne den Reprojektion Fehler
+                    total_error = 0
+                    for i in range(len(rvecs)):
+                        for f in range (int(len(obj_points)/len(rvecs))):
+                            img_points_proj, _ = cv2.projectPoints(obj_points[f], rvecs[i], tvecs[i], camera_matrix, dist_coeffs)
+                            img_points_proj = img_points_proj.reshape(-1, 2)
+                            error = cv2.norm(img_points[f], img_points_proj, cv2.NORM_L2) / len(img_points_proj)
+                            total_error += error
+                    print("durchlauf")
+                    return total_error
+                """
         data = {
             "camera_matrix": camera_matrix.tolist(),
             "dist_coeffs": dist_coeffs.tolist(),
@@ -138,9 +147,12 @@ def calibration_function(x):
                 # Hier könnten später zusätzliche Parameter hinzugefügt werden
             }
         }
-        self.data_manager.add_data("camera_calibration_results", data)
+        self.data_manager.create_calibration_problem("camera_calibration_results", data,calibration_function_code)
+
+        # Speichern Sie die Kalibrierungsfunktion in einer separaten Datei
+        with open('calibration_function.py', 'w') as f:
+            f.write(calibration_function_code)
 
         return camera_matrix, dist_coeffs
-
 
 

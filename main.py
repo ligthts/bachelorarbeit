@@ -37,7 +37,8 @@ def run_all_evaluations(base_dir='camera_calibration_problems', algorithms=[]):
     :param algorithms: Liste von Algorithmen, die zur Bewertung verwendet werden sollen.
     """
     # Lade alle Kalibrierungsprobleme
-    python_functions, json_data = DataManager.load_all_calibration_problems(base_dir)
+    da=DataManager(r"camera_calibration_problems")
+    python_functions, json_data = DataManager.load_all_calibration_problems(da,base_dir)
     for module, classes in algorithms.items():
         for cls in classes:
             module_class_pairs.append(f"{module}.{cls}")
@@ -46,7 +47,7 @@ def run_all_evaluations(base_dir='camera_calibration_problems', algorithms=[]):
     for problem in python_functions:
         for data in json_data:
             print("hier sind die additional",data['additional_params'])
-            for module_class in (module_class_pairs):
+            for module_class in reversed(module_class_pairs):
                 module_name, class_name = module_class.rsplit('.', 1)
                 print(module_name, class_name)
                 algorithm = load_algorithm(module_name, class_name)

@@ -24,21 +24,25 @@ class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
         """
 
         # Filtere die unerwünschten Parameter heraus
-        valid_kwargs = {key: value for key, value in kwargs.items() if key in {'max_nfev', 'ftol', 'xtol'}}
+        valid_kwargs = {key: value for key, value in kwargs.items() if key in {'max_nfev', 'ftol', 'xtol','bounds'}}
 
         # Verwenden Sie Levenberg-Marquardt mit least_squares zur Optimierung
-        result = least_squares(
+        try:
+            result = least_squares(
             function,
             x0=initial_x,
             **valid_kwargs,
             verbose=2,
             method="lm"
-        )
+            )
 
         # Der optimierte x-Wert
-        optimized_x = result.x
-        print("hier sind die extrhierten werte",optimized_x)
+            optimized_x = result.x
+            print("hier sind die extrhierten werte",optimized_x)
         # Der minimale Wert der Funktion bei diesem x
-        min_value = function(optimized_x)
+            min_value = function(optimized_x)
 
-        return optimized_x, min_value
+            return result, min_value
+        except Exception as e:
+            print(e)
+            return 0, 0

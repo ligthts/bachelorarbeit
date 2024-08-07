@@ -16,7 +16,7 @@ import cv2
 
 # Constants
 ALGORITHMS_DIR = "optimization_algos"
-PROBLEMS_DIR = "camera_calibration_problems"
+PROBLEMS_DIR = "shape_estimation_results"
 RESULTS_CSV = "results.csv"
 
 class EvaluationFactors:
@@ -246,8 +246,10 @@ class OptimizationGUI:
             self.root.update()
 
         def evaluate():
-            print("hier war")
-            python_functions, json_data = DataManager.load_all_calibration_problems(PROBLEMS_DIR)
+            print(PROBLEMS_DIR)
+            da=DataManager("camera_calibration_problems")
+            python_functions, json_data = DataManager.load_all_calibration_problems(da,PROBLEMS_DIR)
+            print(python_functions)
             module_class_pairs=[]
             for module, classes in algorithms.items():
                 for cls in classes:

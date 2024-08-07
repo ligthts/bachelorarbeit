@@ -47,7 +47,7 @@ class DataManager:
 
     import os
 
-    def load_all_calibration_problems(base_dir):
+    def load_all_calibration_problems(self,base_dir):
         """
         Lädt alle Kalibrierungsprobleme aus den Unterordnern des Basisverzeichnisses.
 

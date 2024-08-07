@@ -30,6 +30,9 @@ class GradientDescentAlgorithm:
         # Filtere nur die gültigen Argumente für least_squares
         filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
         print(filtered_kwargs)
+        default_bounds={}
+        bounds = kwargs.get('bounds', default_bounds)
+        print(bounds)
         # Rufe least_squares mit den gefilterten Argumenten auf
         result = least_squares(func, initial_x, **filtered_kwargs,verbose=2)
         result_x = func(result.x)

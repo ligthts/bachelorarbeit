@@ -29,26 +29,36 @@ class SimulatedAnnealingAlgorithm:
         print(initial_x)
         # Filtere nur die gültigen Argumente für least_squares
         filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
-        print(filtered_kwargs)
-        percent_deviation=30
-        absolute_deviation=10000
-        bounds_lower = []
-        bounds_upper = []
-        bounds=[]
-        for param in initial_x:
-            if param != 0:
-                lower_bound = param * (1 - percent_deviation)
-                upper_bound = param * (1 + percent_deviation)
-            else:
-                lower_bound = -absolute_deviation
-                upper_bound = absolute_deviation
-            if lower_bound >= upper_bound:
-                lower_bound, upper_bound = min(lower_bound, upper_bound), max(lower_bound, upper_bound)
-            if lower_bound<0:
-                lower_bound=0
-            bounds.append((lower_bound,upper_bound))
-        print(bounds)
+        if 'bounds' not in filtered_kwargs:
+            print(filtered_kwargs)
+            percent_deviation=30
+            absolute_deviation=10000
+            bounds_lower = []
+            bounds_upper = []
+            bounds=[]
+            for param in initial_x:
+                if param != 0:
+                    lower_bound = param * (1 - percent_deviation)
+                    upper_bound = param * (1 + percent_deviation)
+                else:
+                    lower_bound = -absolute_deviation
+                    upper_bound = absolute_deviation
+                if lower_bound >= upper_bound:
+                    lower_bound, upper_bound = min(lower_bound, upper_bound), max(lower_bound, upper_bound)
+                if lower_bound<0:
+                    lower_bound=0
+                bounds.append((lower_bound,upper_bound))
+                filtered_kwargs['bounds'] = bounds
+
+        else:
+            default_bounds=[(None,None)]
+            bounds = kwargs.get('bounds', default_bounds)
+            print("boundsh",bounds)
+            filtered_kwargs['bounds']=bounds
+
+            # Aufteilen in lower_bounds und upper_bounds
+        #print(bounds)
         # Rufe least_squares mit den gefilterten Argumenten auf
-        result = dual_annealing(func, bounds,maxiter=self.max_iterations, **filtered_kwargs)
+        result = dual_annealing(func,maxiter=self.max_iterations, **filtered_kwargs)
         result_x = func(result.x)
         return result, result_x

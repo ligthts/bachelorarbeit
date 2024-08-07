@@ -35,22 +35,43 @@ class ParticleAlgorithm:
         bounds_lower = []
         bounds_upper = []
         bounds=[]
-        for param in initial_x:
-            if param != 0:
-                lower_bound = param * (1 - percent_deviation)
-                upper_bound = param * (1 + percent_deviation)
-            else:
-                lower_bound = -absolute_deviation
-                upper_bound = absolute_deviation
-            if lower_bound >= upper_bound:
-                lower_bound, upper_bound = min(lower_bound, upper_bound), max(lower_bound, upper_bound)
-            if lower_bound<0:
-                lower_bound=0
-            bounds.append((lower_bound,upper_bound))
-        print(bounds)
-        lb = [b[0] for b in bounds]
-        ub = [b[1] for b in bounds]
+        if 'bounds' not in filtered_kwargs:
+            for param in initial_x:
+                if param != 0:
+                    lower_bound = param * (1 - percent_deviation)
+                    upper_bound = param * (1 + percent_deviation)
+                else:
+                    lower_bound = -absolute_deviation
+                    upper_bound = absolute_deviation
+                if lower_bound >= upper_bound:
+                    lower_bound, upper_bound = min(lower_bound, upper_bound), max(lower_bound, upper_bound)
+                if lower_bound<0:
+                    lower_bound=0
+                bounds.append((lower_bound,upper_bound))
+                print(bounds)
+                lb = [b[0] for b in bounds]
+                ub = [b[1] for b in bounds]
+        else:
+            default_bounds=[(None,None)]
+            bounds = kwargs.get('bounds', default_bounds)
+
+            # Aufteilen in lower_bounds und upper_bounds
+            lower_bounds = []
+            upper_bounds = []
+
+            for bound in bounds:
+                lower_bounds.append(bound[0])
+                upper_bounds.append(bound[1])
+            lb=lower_bounds
+            ub=upper_bounds
         # Rufe least_squares mit den gefilterten Argumenten auf
+        print("hier2",lb)
+        print("hier",ub)
         result = pso(func,lb, ub)
-        result_x = func(result.x)
-        return result, result_x
+        print(result)
+        print(result[0])
+        result_x = func(result[0])
+        res={
+            'x':result[0]
+        }
+        return res, result_x

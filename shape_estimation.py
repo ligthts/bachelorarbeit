@@ -70,28 +70,29 @@ class Shapeestimation:
             plt.title('Extrahierte Punkte')
             plt.show()
             initial_params = [
-            0,0,0,1000
+            0,0,1000
             ]
             calibration_function_code = f"""
 import numpy as np
 def calibration_function(x):
     points={points.tolist()}
     distances=0
-    center=np.array([x[0],x[1],x[2]])
+    center=np.array([x[0],x[1]])
     for point in points:
-        distance=np.linalg.norm(point - center[:,np.newaxis], axis=0)
+        distance=abs((point[0]-x[0])**2 +(point[0]-x[1])**2 -(x[2])**2)
+        #distance=np.linalg.norm(point - center[:,np.newaxis], axis=0)
         distances=distance+distances
     #f=0
     #for distanc in distances:
     #    f=distanc+f
-    return distances-x[3]
+    return distances
                 """
             data = {
             "points": points.tolist(),
             "calibration_function": calibration_function_code,
             "initial_params": initial_params,
             "additional_params": {
-                "gtol":1e-3
+                "gtol":1e-3,
                 # Hier könnten später zusätzliche Parameter hinzugefügt werden
                 }
             }

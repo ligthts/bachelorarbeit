@@ -50,5 +50,6 @@ class ParticleAlgorithm:
         print(bounds)
         # Rufe least_squares mit den gefilterten Argumenten auf
         result = pso(func, bounds,lb=[b[0] for b in bounds], ub=[b[1] for b in bounds])
-        result_x = func(result.x)
+        print(result)
+        result_x = func(result)
         return result, result_x

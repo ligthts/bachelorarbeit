@@ -84,7 +84,7 @@ def calibration_function(x):
     #f=0
     #for distanc in distances:
     #    f=distanc+f
-    return -x[3]
+    return distances-x[3]
                 """
             data = {
             "points": points.tolist(),

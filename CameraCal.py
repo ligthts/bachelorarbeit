@@ -135,7 +135,6 @@ def calibration_function(x):
                             img_points_proj = img_points_proj.reshape(-1, 2)
                             error = cv2.norm(img_points[f], img_points_proj, cv2.NORM_L2) / len(img_points_proj)
                             total_error += error
-                    print("durchlauf")
                     return total_error
                 """
         data = {
@@ -144,6 +143,7 @@ def calibration_function(x):
             "calibration_function": calibration_function_code,
             "initial_params": initial_params,
             "additional_params": {
+                "gtol": 1e-6
                 # Hier könnten später zusätzliche Parameter hinzugefügt werden
             }
         }

@@ -1,7 +1,7 @@
-from scipy.optimize import least_squares
+from pyswarm import pso
 
-class GradientDescentAlgorithm:
-    def __init__(self, learning_rate=0.01, max_iterations=1000, tolerance=1e-6):
+class ParticleAlgorithm:
+    def __init__(self, learning_rate=0.01, max_iterations=100, tolerance=1e-6):
         self.learning_rate = learning_rate
         self.max_iterations = max_iterations
         self.tolerance = tolerance
@@ -30,7 +30,27 @@ class GradientDescentAlgorithm:
         # Filtere nur die gültigen Argumente für least_squares
         filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
         print(filtered_kwargs)
+        percent_deviation=30
+        absolute_deviation=10000
+        bounds_lower = []
+        bounds_upper = []
+        bounds=[]
+        for param in initial_x:
+            if param != 0:
+                lower_bound = param * (1 - percent_deviation)
+                upper_bound = param * (1 + percent_deviation)
+            else:
+                lower_bound = -absolute_deviation
+                upper_bound = absolute_deviation
+            if lower_bound >= upper_bound:
+                lower_bound, upper_bound = min(lower_bound, upper_bound), max(lower_bound, upper_bound)
+            if lower_bound<0:
+                lower_bound=0
+            bounds.append((lower_bound,upper_bound))
+        print(bounds)
+        lb = [b[0] for b in bounds]
+        ub = [b[1] for b in bounds]
         # Rufe least_squares mit den gefilterten Argumenten auf
-        result = least_squares(func, initial_x, **filtered_kwargs,verbose=2)
+        result = pso(func,lb, ub)
         result_x = func(result.x)
         return result, result_x

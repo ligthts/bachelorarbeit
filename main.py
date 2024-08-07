@@ -38,7 +38,6 @@ def run_all_evaluations(base_dir='camera_calibration_problems', algorithms=[]):
     """
     # Lade alle Kalibrierungsprobleme
     python_functions, json_data = DataManager.load_all_calibration_problems(base_dir)
-    print(python_functions)
     for module, classes in algorithms.items():
         for cls in classes:
             module_class_pairs.append(f"{module}.{cls}")
@@ -46,16 +45,35 @@ def run_all_evaluations(base_dir='camera_calibration_problems', algorithms=[]):
     # Iteriere über alle geladenen Kalibrierungsprobleme
     for problem in python_functions:
         for data in json_data:
-            for module_class in reversed(module_class_pairs):
+            print("hier sind die additional",data['additional_params'])
+            for module_class in (module_class_pairs):
                 module_name, class_name = module_class.rsplit('.', 1)
                 print(module_name, class_name)
                 algorithm = load_algorithm(module_name, class_name)
 
                 # Iteriere über alle Algorithmen
                 print(algorithm)
-                #print(f"Evaluating problem '{problem['name']}' with algorithm '{algorithm.__name__}'")
-                result = evaluate_algorithm(algorithm, data,problem)
-                print(f"Result: {result}")
+                try:
+                    #print(f"Evaluating problem '{problem['name']}' with algorithm '{algorithm.__name__}'")
+                    factors,result_x,minvalue = evaluate_algorithm(algorithm, data,problem)
+                    try:
+                        print(result_x)
+                        print(f"Problemart:{base_dir}")
+                        print(f"Algorithm: {class_name}")
+                        print(f"Run Time: {factors.run_time} seconds")
+                        print(f"Accuracy: {factors.accuracy}")
+                        print(f"Memory Usage: {factors.memory_usage} bytes")
+
+                        try:
+                            print("Anzahl Iterationen:", result_x.nfev)
+                        except:
+                            print("kann keine Iterationen bestimmen")
+                        print(f"Minimum x: {result_x}, Minimum value: {minvalue}")
+                        print(f"Result: {minvalue}")
+                    except:
+                        print("nicht möglich mit :",result_x)
+                except():
+                    print("nicht möglich")
 def load_modules_and_find_classes(directory):
     modules_and_classes = {}
     for filename in os.listdir(directory):
@@ -76,9 +94,9 @@ def evaluate_algorithm(algorithm, data,function):
     process = psutil.Process()
     mem_before = process.memory_info().rss
     start_time = time.time()
-
+    print("hier2:",data['additional_params'])
     # Optimierung der Funktion auf den x-Wert, der das Minimum erreicht
-    result_x = algorithm.optimize(
+    result_x, minvalue = algorithm.optimize(
         function,  # Pass the function from the data dictionary
         data['initial_params'],  # Pass the initial value for x
         **data.get('additional_params', {})  # Ensure this is a dictionary
@@ -93,7 +111,7 @@ def evaluate_algorithm(algorithm, data,function):
         #calculate_accuracy(data['function'], result_x)
     factors.memory_usage = mem_after - mem_before
 
-    return factors, result_x,
+    return factors, result_x,minvalue
         #data['function'](result_x)
 
 def calculate_accuracy(function, x):
@@ -127,24 +145,23 @@ if __name__ == "__main__":
     initial_params = data['initial_params']
     additional_params = data['additional_params']
 
-    #da = {
-     #   'function': calibration_function,
-      #  'initial_x': initial_params,
-       # 'additional_params': additional_params
-    #}
+    da = {
+        'function': lambda x:x**2,
+        'initial_x': 1,
+        'additional_params': {}
+    }
 
     algorithms = load_modules_and_find_classes('optimization_algos')
     module_class_pairs = []
     for module, classes in algorithms.items():
         for cls in classes:
             module_class_pairs.append(f"{module}.{cls}")
-    run_all_evaluations("camera_calibration_problems",algorithms)
+    run_all_evaluations("shape_estimation_results",algorithms)
     for module_class in reversed(module_class_pairs):
         module_name, class_name = module_class.rsplit('.', 1)
         print(module_name, class_name)
         algorithm = load_algorithm(module_name, class_name)
-        if True:
-            print(algorithm)
+        if False:
             factors, result_x = evaluate_algorithm(algorithm, da)
             # Empiricalschatzung.Plotting(Empiricalschatzung, algorithm)
             print(f"Algorithm: {class_name}")

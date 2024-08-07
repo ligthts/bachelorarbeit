@@ -47,7 +47,7 @@ class DataManager:
 
     import os
 
-    def load_all_calibration_problems(base_dir='camera_calibration_problems'):
+    def load_all_calibration_problems(base_dir):
         """
         Lädt alle Kalibrierungsprobleme aus den Unterordnern des Basisverzeichnisses.
 
@@ -57,10 +57,11 @@ class DataManager:
         python_functions = []
         json_data = []
         print("load")
+        direct=r"camera_calibration_problems"
         try:
             # Durchsuche alle Unterordner im Basisverzeichnis
-            for problem_folder in os.listdir(base_dir):
-                problem_folder_path = os.path.join(base_dir, problem_folder)
+                problem_folder_path = os.path.join(direct,base_dir)
+                print(problem_folder_path)
                 if os.path.isdir(problem_folder_path):
                     print("2")
                     # Durchsuche UUID-Unterordner
@@ -76,7 +77,6 @@ class DataManager:
                                 print(4)
                                 with open(python_file, 'r') as file:
                                     code = file.read()
-                                    print(code)
                                 local_vars = {'np': np, 'cv2': cv2}
 
                                 exec(code, globals(), local_vars)
@@ -85,7 +85,6 @@ class DataManager:
                                     python_functions.append(
 
                                         local_vars['calibration_function'])
-                                    print(python_functions)
                                 else:
                                     print(f"Keine Funktion 'calibration_function' in '{python_file}' gefunden.")
                                 #print(python_functions)
@@ -97,10 +96,7 @@ class DataManager:
                                     print(7)
                                 json_data.append(data
                                 )
-                                print("hier json data:")
-                                print(json_data)
-                                print("hier python functions:")
-                                print(python_functions)
+
 
         except Exception as e:
             print(f"Fehler beim Laden der Kalibrierungsprobleme: {e}")

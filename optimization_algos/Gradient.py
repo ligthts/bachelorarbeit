@@ -6,7 +6,7 @@ class GradientDescentAlgorithm:
         self.max_iterations = max_iterations
         self.tolerance = tolerance
 
-    def optimize_least_squares(func, initial_x, **kwargs):
+    def optimize_least_squares(self,func, initial_x, **kwargs):
         """
         Optimiert eine Funktion mit Hilfe des Least-Squares-Algorithmus von SciPy.
 
@@ -20,7 +20,7 @@ class GradientDescentAlgorithm:
         """
         # Filtern der relevanten Schlüsselwörter, die least_squares akzeptiert
         valid_keys = {
-            'jac', 'bounds', 'method', 'ftol', 'xtol', 'gtol',
+            'jac', 'bounds', 'method', 'ftol', 'xtol',
             'x_scale', 'loss', 'f_scale', 'diff_step', 'tr_solver',
             'tr_options', 'jac_sparsity', 'max_nfev', 'verbose',
             'args', 'kwargs'
@@ -30,6 +30,6 @@ class GradientDescentAlgorithm:
         filtered_kwargs = {key: value for key, value in kwargs.items() if key in valid_keys}
 
         # Rufe least_squares mit den gefilterten Argumenten auf
-        result = least_squares(func, initial_x, **filtered_kwargs)
+        result = least_squares(func, initial_x, **filtered_kwargs,verbose=2)
         result_x=func(result)
         return result, result_x

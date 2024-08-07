@@ -30,12 +30,14 @@ class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
             max_nfev=self.max_iterations,
             ftol=self.tolerance,
             xtol=self.tolerance,
-            **kwargs
+            method="lm",
+            **kwargs,
+            verbose=2
         )
 
         # Der optimierte x-Wert
-        optimized_x = result.x[0]
+        optimized_x = result.x
         # Der minimale Wert der Funktion bei diesem x
         min_value = function(optimized_x)
 
-        return optimized_x, min_value
+        return result, min_value

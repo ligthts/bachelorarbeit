@@ -30,11 +30,14 @@ class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
         result = least_squares(
             function,
             x0=initial_x,
-            **valid_kwargs
+            **valid_kwargs,
+            verbose=2,
+            method="lm"
         )
 
         # Der optimierte x-Wert
-        optimized_x = result.x[0]
+        optimized_x = result.x
+        print("hier sind die extrhierten werte",optimized_x)
         # Der minimale Wert der Funktion bei diesem x
         min_value = function(optimized_x)
 

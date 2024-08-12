@@ -25,7 +25,15 @@ class LevenbergMarquardtAlgorithm(OptimizationAlgorithm):
 
         # Filtere die unerwünschten Parameter heraus
         valid_kwargs = {key: value for key, value in kwargs.items() if key in {'max_nfev', 'ftol', 'xtol','bounds'}}
-
+        def function1(x):
+            res=function(x)
+            if len(res)!=len(x):
+                r=[]
+                for d in range(len(x)):
+                    r.append(res)
+                return r
+            else:
+                return res
         # Verwenden Sie Levenberg-Marquardt mit least_squares zur Optimierung
         try:
             result = least_squares(
